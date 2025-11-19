@@ -1,0 +1,52 @@
+# app.py
+import argparse
+from rich import print
+
+from agents.log_preprocessor import run as preprocess_run
+from agents.llm_triage import run as triage_run
+from agents.llm_jira import run as jira_draft_run
+from agents.llm_filter import run as filter_run
+from agents.llm_confluence import run as conf_run
+from agents.executor import run_full_pipeline
+
+def main():
+    parser = argparse.ArgumentParser(description="ALOE - Adaptive Log Orchestration Engine")
+    parser.add_argument(
+        "command",
+        choices=["preprocess", "triage", "jira_drafts", "filter_suggestions", "conf_draft", "run_all"],
+    )
+    args = parser.parse_args()
+
+    if args.command == "preprocess":
+        print("[bold green]Log Preprocessor Agent...[/bold green]")
+        ctx = {}
+        ctx = preprocess_run(ctx)
+
+    elif args.command == "triage":
+        print("[bold green]LLM Triage Agent...[/bold green]")
+        res = triage_run()
+        print(f"[bold cyan]Triaged {res['count']} clusters → data/triaged_llm.json[/bold cyan]")
+
+    elif args.command == "jira_drafts":
+        print("[bold green]Jira Ticketing LLM Agent (drafts)...[/bold green]")
+        res = jira_draft_run()
+        print(f"[bold cyan]Drafted {res['count']} tickets → data/jira_drafts.json[/bold cyan]")
+
+    elif args.command == "filter_suggestions":
+        print("[bold green]Filter Generalization LLM Agent...[/bold green]")
+        res = filter_run()
+        print(f"[bold cyan]Created {res['count']} suggestions → data/filter_suggestions.json[/bold cyan]")
+
+    elif args.command == "conf_draft":
+        print("[bold green]Confluence Update LLM Agent (markdown draft)...[/bold green]")
+        res = conf_run()
+        print(f"[bold cyan]Wrote markdown → data/confluence_draft.md[/bold cyan]")
+
+    elif args.command == "run_all":
+        print("[bold magenta]Running full ALOE pipeline with LLM orchestration...[/bold magenta]")
+        res = run_full_pipeline()
+        print("[bold magenta]Pipeline finished.[/bold magenta]")
+        print(res)
+
+if __name__ == "__main__":
+    main()

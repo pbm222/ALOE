@@ -1,0 +1,139 @@
+{
+    "size": 100,
+    "sort": [
+        { "@timestamp": "desc" }
+    ],
+    "query": {
+        "bool": {
+            "must": [
+                { "term": { "athena_level.keyword": "ERROR" } },
+                {
+                    "range": {
+                        "@timestamp": {
+                            "gte": "now-1d",
+                            "lte": "now"
+                        }
+                    }
+                }
+            ],
+            "must_not": [
+                { "match_phrase": { "log": "Couldn't find interaction ID for document" } },
+                { "match_phrase": { "log": "com.lv.falcon.integrations.dozer.exception.UnsupportedClassifierException: Input value '7' can't be converted to classified value." } },
+                {
+                    "bool": {
+                        "must": [
+                            { "match_phrase": { "log": "Failed to post agency notify policy issue" } },
+                            { "match_phrase": { "log": "No value present" } }
+                        ]
+                    }
+                },
+                { "match_phrase": { "log": "com.knowledgeprice.athena.payments.dao.dto.Transaction.setRequest(String)" } },
+                { "match_phrase": { "log": "this._sessions" } },
+                { "match_phrase": { "log": "because it did not have any active links in the past 300000 milliseconds" } },
+                {
+                    "bool": {
+                        "must": [
+                            { "match_phrase": { "log": "because \"policyVersion\" is null" } },
+                            { "match_phrase": { "AthenaServiceName": "documentsgenerator" } }
+                        ]
+                    }
+                },
+                {
+                    "bool": {
+                        "must": [
+                            { "match_phrase": { "log": "because \"lastPolicyVersion\" is null" } },
+                            { "match_phrase": { "AthenaServiceName": "documentsgenerator" } }
+                        ]
+                    }
+                },
+                { "match_phrase": { "log": "VWFS CheckCustomerResponse error response: Not Found: Vehicle not found" } },
+                {
+                    "bool": {
+                        "must": [
+                            { "match_phrase": { "log": "Interaction with status AGREEMENT and id" } },
+                            { "match_phrase": { "log": "can't be converted to an agreement." } }
+                        ]
+                    }
+                },
+                { "match_phrase": { "log": "Error calculating CPU time change" } },
+                { "match_phrase": { "log": "No email defined for interaction" } },
+                { "match_phrase": { "log": "Failed to upload the generated document to Logicaldoc. Document name - ferry_renewal_decline_support.pdf" } },
+                {
+                    "bool": {
+                        "must": [
+                            { "match_phrase": { "log": "Incorrect result size" } },
+                            { "match_phrase": { "log": "updateTransactionRequestResponse" } }
+                        ]
+                    }
+                },
+                { "match_phrase": { "log": "Can't find template with ID wolf_mta_cancellation_sms" } },
+                { "match_phrase": { "log": "Document wolf_mta_cancellation_sms generation failed" } },
+                { "match_phrase": { "log": "not compatible with any of standard forms" } },
+                { "match_phrase": { "log": "Attempt to cancel policy which is already cancelled" } },
+                { "match_phrase": { "log": "\"com.lv.falcon.model.common.payment.CardDetails.getId()\" is null" } },
+                {
+                    "bool": {
+                        "must": [
+                            { "match_phrase": { "log": "Failed to post agency notify policy issue for interaction" } },
+                            { "match_phrase": { "log": "\"uk.co.allianz.ferry.model.common.payment.InstalmentPlan.getInstalmentPlanParameters()\" is null" } }
+                        ]
+                    }
+                },
+                {
+                    "bool": {
+                        "must": [
+                            { "match_phrase": { "log": "Cannot invoke \"uk.co.allianz.ferry.model.common.payment.InstalmentPlanParameters.getCancellationFee()\"" } },
+                            { "match_phrase": { "log": "LoadAnnualProductInformationForCancellationEnrichment.java" } }
+                        ]
+                    }
+                },
+                { "match_phrase": { "log": "Caught error while connecting to Google OcrThe Application Default Credentials are not available" } },
+                { "match_phrase": { "log": "because \"nextPaymentDueDate\" is null" } },
+                { "match_phrase": { "log": "because the return value of \"uk.co.allianz.ferry.model.common.payment.InstalmentPlanParameters.getIptTax()\" is null" } },
+                { "match_phrase": { "log": "Interaction with status DECLINE" } },
+                { "match_phrase": { "log": "null value in column \"reference_number\" of relation \"party\" violates not-null constraint" } },
+                {
+                    "bool": {
+                        "must": [
+                            { "match_phrase": { "log": "Failed Obtaining Current Property Value : For Property : Vehicle_DateManufactured" } },
+                            { "match_phrase": { "AthenaServiceName": "middleware" } }
+                        ]
+                    }
+                },
+                { "match_phrase": { "log": "DFQWSA08: VRM not found" } },
+                { "match_phrase": { "log": "for all retries, moved to retry failed queue" } },
+                { "match_phrase": { "log": "We accept most major credit and debit cards that use the 3D verification process" } },
+                {
+                    "bool": {
+                        "must": [
+                            { "match_phrase": { "log": "[stderr]" } },
+                            { "match_phrase": { "AthenaServiceName": "apimangateway" } }
+                        ]
+                    }
+                },
+                { "match_phrase": { "log": "HTTP 503 Service Unavailable" } },
+                { "match_phrase": { "log": "No client found for API Key oaAHo4rjFnnnL4lhqipQ" } },
+                {
+                    "bool": {
+                        "must": [
+                            { "match_phrase": { "log": "Keycloak authentication failed" } },
+                            { "match_phrase": { "AthenaServiceName": "health-checks" } }
+                        ]
+                    }
+                },
+                { "match_phrase": { "log": "Failed to find interaction for processing migrated renewal payment" } },
+                {
+                    "bool": {
+                        "must": [
+                            { "match_phrase": { "log": "Exception occurred when processing MOT data" } },
+                            { "match_phrase": { "log": "Timeout" } }
+                        ]
+                    }
+                },
+                { "match_phrase": { "log": "SCCON01" } },
+                { "match_phrase": { "log": "API does not exist" } },
+                { "match_phrase": { "log": "API Version does not exist" } }
+            ]
+        }
+    }
+}
