@@ -1,8 +1,12 @@
 # agents/llm_triage.py
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Dict, Any, List
 from utils.llm import ask_json
+import re
+import hashlib
 
 CLUSTERS = Path("output") / "clusters.json"
 OUT = Path("output") / "triaged_llm.json"
@@ -52,23 +56,53 @@ Cluster:
 {cluster_json}
 ```"""
 
-def run() -> Dict[str, Any]:
-    data = json.loads(CLUSTERS.read_text(encoding="utf-8"))
-    clusters: List[Dict[str, Any]] = data.get("clusters", [])
+def make_cluster_signature(java_class: str | None, message: str | None) -> str:
+    """
+    Build a stable-ish signature for a log cluster, so we can match it across runs.
 
+    We normalize digits to '#' to avoid IDs/timestamps breaking the signature.
+    """
+    base = (java_class or "") + "|" + (message or "")
+    normalized = re.sub(r"\d+", "#", base)
+    h = hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:12]
+    return h
+
+
+def run() -> Dict[str, Any]:
     # limit for now (top N clusters by frequency)
     #clusters = clusters[:TRIAGE_TOP_N]
+
+    data = json.loads(CLUSTERS.read_text(encoding="utf-8"))
+    clusters: List[Dict[str, Any]] = data.get("clusters", [])
 
     results: List[Dict[str, Any]] = []
 
     for idx, c in enumerate(clusters):
         user = USER_TEMPLATE.format(cluster_json=json.dumps(c, ensure_ascii=False, indent=2))
         out = ask_json(SYSTEM, user)
+
+        # NEW: extract service + a small stack snippet for later use in Jira
+        service = c.get("service") or c.get("athena_service")
+        sample = c.get("sample") or {}
+        sample_source = sample.get("_source") or sample
+        full_log = sample_source.get("log", "")
+
+        # keep only first few stack lines to avoid huge JSON
+        stack_lines = full_log.splitlines()
+        stack_excerpt = "\n".join(stack_lines[:15])
+
+        java_class = c.get("java_class")
+        message = c.get("message")
+        signature = make_cluster_signature(java_class, message)
+
         results.append({
             "idx": idx,
+            "signature": signature,
+            "service": service,
             "java_class": c.get("java_class"),
             "message": c.get("message"),
             "count": c.get("count"),
+            "stack_excerpt": stack_excerpt,
             "triage": out,
         })
 

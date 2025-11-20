@@ -1,15 +1,15 @@
 # agents/executor.py
 
-from typing import Dict, Any, List
+from typing import Dict, Any
 from rich import print
 
 # Tool agents / LLM agents
 from agents.log_preprocessor import run as preprocess_run
 from agents.llm_triage import run as triage_run
 from agents.summary import build_summary, load_triaged
-from agents.jira_drafts import run as jira_draft_run
-from agents.filter_suggestions import run as filter_run
-from agents.confluence_draft import run as conf_run
+from agents.llm_jira import run as jira_draft_run
+from agents.llm_filter import run as filter_run
+from agents.llm_confluence import run as conf_run
 from agents.llm_orchestrator import plan_actions
 
 
@@ -20,7 +20,6 @@ from agents.llm_orchestrator import plan_actions
 def execute_actions(plan: Dict[str, Any]) -> Dict[str, Any]:
     """
     Execute actions chosen by LLM orchestrator.
-    Supports dynamic agent parameters.
     """
     actions = plan.get("actions", [])
     results: Dict[str, Any] = {}
@@ -38,17 +37,8 @@ def execute_actions(plan: Dict[str, Any]) -> Dict[str, Any]:
         # -----------------------------------------
         if agent == "JiraDrafts":
             print("[bold green]Running Jira Ticketing LLM Agent (drafts)...[/bold green]")
-
-            # Dynamic policy parameters
-            max_tickets = act.get("max_tickets")
-            min_severity = act.get("min_severity")
-            min_confidence = act.get("min_confidence")
-
-            res = jira_draft_run(
-                max_tickets=max_tickets,
-                min_severity=min_severity,
-                min_confidence=min_confidence,
-            )
+            cluster_indices = act.get("cluster_indices") or []
+            res = jira_draft_run(cluster_indices=cluster_indices)
             results["jira_drafts"] = res
 
         # -----------------------------------------
@@ -130,7 +120,7 @@ def run_full_pipeline() -> Dict[str, Any]:
     # Step 4: Orchestrator LLM
     # -----------------------------
     print("[bold green]Step 4: LLM Orchestrator Agent[/bold green]")
-    plan = plan_actions(summary)
+    plan = plan_actions(summary, triaged_items)
     print(f"[cyan]Orchestrator plan: {plan}[/cyan]")
 
     # -----------------------------
