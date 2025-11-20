@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Dict, Any, List
 from utils.llm import ask_json
 
-DRAFTS = Path("data") / "jira_drafts.json"
-OUT = Path("data") / "filter_suggestions.json"
+DRAFTS = Path("output") / "jira_drafts.json"
+OUT = Path("output") / "filter_suggestions.json"
 MAX_FILTER_SUGGESTIONS = 1
 
 SYSTEM = """You are a log filtering assistant.

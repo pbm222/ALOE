@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple
 from rich import print
 
-INPUT_FILE = Path("data") / "logs.json"
-RAW_OUT   = Path("data") / "raw_logs.json"
-CL_OUT    = Path("data") / "clusters.json"
+INPUT_FILE = Path("output") / "logs.json"
+RAW_OUT   = Path("output") / "raw_logs.json"
+CL_OUT    = Path("output") / "clusters.json"
 
 def _load_es_export(path: Path) -> List[Dict[str, Any]]:
     """Load ES search response JSON and return _source list."""

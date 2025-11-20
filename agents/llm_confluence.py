@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Dict, Any, List
 from utils.llm import ask_json
 
-TRIAGED = Path("data") / "triaged_llm.json"
-DRAFTS = Path("data") / "jira_drafts.json"
-OUT = Path("data") / "confluence_draft.md"
+TRIAGED = Path("output") / "triaged_llm.json"
+DRAFTS = Path("output") / "jira_drafts.json"
+OUT = Path("output") / "confluence_draft.md"
 
 SYSTEM = """You are a technical writer preparing a weekly log review summary for Confluence.
 Write concise markdown with:
