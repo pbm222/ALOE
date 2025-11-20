@@ -109,7 +109,7 @@ def _compact_clusters(triaged_items: List[Dict[str, Any]]) -> List[Dict[str, Any
 
 def plan_actions(summary: Dict[str, Any], triaged_items: List[Dict[str, Any]]) -> Dict[str, Any]:
     compact_clusters = _compact_clusters(triaged_items)
-    feedback = load_feedback()
+    feedback_entries = load_feedback()
 
     # index feedback by signature
     fb_by_sig = {}
