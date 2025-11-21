@@ -3,7 +3,7 @@ ALOE (Adaptive Log Orchestration Engine)
 ALOE is a multi-agent system that helps teams review backend logs more intelligently.
 It uses LLM agents that work together guided by an Orchestrator that decides what should happen during each run.
 
-**Components:**
+### Components:
 1. Log Preprocessor
 - Collects raw logs from ElasticSearch via API
 - Normalizes fields (service, class, message, timestamp)
@@ -42,8 +42,22 @@ It uses LLM agents that work together guided by an Orchestrator that decides wha
 
   run  ```python app.py review_jira```
 
+### Commands
 
-Example:
+Run whole process ```python app.py run_all```
+
+### Local development
+In order to run locally, you need to obtain Groq API Key from its website (it is free)
+
+Then add a file .env.local with the following variables
+```
+GROQ_API_KEY=gsk_XXXX
+GROQ_MODEL=llama-3.1-70b-versatile
+ENV=local
+```
+
+
+### Example process flow
 ```Running full ALOE pipeline with LLM orchestration...
 
 Step 1: Log Preprocessor Agent

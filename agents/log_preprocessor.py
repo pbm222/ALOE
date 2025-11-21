@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple
 from rich import print
 
-INPUT_FILE = Path("output") / "logs.json"
+INPUT_FILE = Path("resources") / "test_logs.json"
 RAW_OUT   = Path("output") / "raw_logs.json"
 CL_OUT    = Path("output") / "clusters.json"
 
