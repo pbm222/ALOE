@@ -63,13 +63,6 @@ def _load(path: Path, default):
 
 
 def run(include_sections: Optional[List[str]] = None) -> Dict[str, Any]:
-    """
-    Generate a Confluence-ready markdown summary.
-
-    Parameters:
-        include_sections : list[str] or None
-            Which sections to include (e.g. ["summary", "jira_links", "filters"]).
-    """
     if include_sections is None:
         include_sections = ["summary", "jira_links", "filters"]
 
