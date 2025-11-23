@@ -83,7 +83,6 @@ def build_summary() -> Dict[str, Any]:
     triaged_items = load_triaged()
     cluster_count = len(triaged_items)
 
-    # raw log count (if available)
     log_count = _load_raw_logs_count()
 
     by_label: Dict[str, int] = {}

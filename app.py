@@ -17,12 +17,20 @@ def main():
         choices=["preprocess", "triage", "jira_drafts", "filter_suggestions",
              "conf_draft", "run_all", "review_jira"],
     )
+
+    parser.add_argument(
+        "--source",
+        choices=["mock", "elastic"],
+        default="mock",
+        help="Log source: 'mock' (file) or 'elastic' (Elasticsearch API)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "preprocess":
         print("[bold green]Log Preprocessor Agent...[/bold green]")
         ctx = {}
-        ctx = preprocess_run(ctx)
+        ctx = preprocess_run(ctx, source=args.source)
 
     elif args.command == "triage":
         print("[bold green]LLM Triage Agent...[/bold green]")
@@ -52,7 +60,7 @@ def main():
 
     elif args.command == "run_all":
         print("[bold magenta]Running full ALOE pipeline with LLM orchestration...[/bold magenta]")
-        res = run_full_pipeline()
+        res = run_full_pipeline(source=args.source)
         print("[bold magenta]Pipeline finished.[/bold magenta]")
         print(res)
 

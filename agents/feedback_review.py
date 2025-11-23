@@ -18,10 +18,7 @@ def _load_jira_drafts() -> Dict[str, Any]:
 
 def run() -> Dict[str, Any]:
     """
-    Interactive review of Jira drafts:
-    - shows each draft
-    - asks for approval (y) / disapproval (n) / skip (s) / quit (q)
-    - writes feedback.json entries keyed by cluster signature
+    - approval (y) / disapproval (n) / skip (s) / quit (q)
     """
     data = _load_jira_drafts()
     drafts: List[Dict[str, Any]] = data.get("drafts", [])

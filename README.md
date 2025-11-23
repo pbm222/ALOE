@@ -44,7 +44,8 @@ It uses LLM agents that work together guided by an Orchestrator that decides wha
 
 ### Commands
 
-Run whole process ```python app.py run_all```
+Run whole process ```python app.py run_all --source mock```
+use *mock* or *elastic* source parameter
 
 ### Local development
 In order to run locally, you need to obtain Groq API Key from its website (it is free)
@@ -52,10 +53,17 @@ In order to run locally, you need to obtain Groq API Key from its website (it is
 Then add a file .env.local with the following variables
 ```
 GROQ_API_KEY=gsk_XXXX
-GROQ_MODEL=llama-3.1-70b-versatile
+GROQ_MODEL=llama-3.3-70b-versatile
 ENV=local
+ALOE_ES_URL="http://localhost:9200"
+ALOE_ES_INDEX="logstash-*"
+ALOE_ES_USERNAME="elastic"
+ALOE_ES_PASSWORD="changeme"
 ```
+### Errors
 
+``` Groq error: Error code: 400 - {'error': {'message':'The model `llama-3.1-70b-versatile` has been decommissioned and is no longer supported ```
+- check https://console.groq.com/docs/rate-limits for latest version
 
 ### Example process flow
 ```Running full ALOE pipeline with LLM orchestration...

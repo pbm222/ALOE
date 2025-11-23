@@ -65,7 +65,7 @@ Use the following rules:
 - For "Steps to reproduce", suggest reasonable, generic steps inferred from the log.
 
 Return JSON with this exact schema:
-{
+{{
   "summary": "Short Jira summary line",
   "issue_description": "Filled Issue description section",
   "kibana_url": "TODO placeholder as described",
@@ -74,10 +74,10 @@ Return JSON with this exact schema:
   "notes_for_development": "Filled Notes for development section",
   "steps_to_reproduce": "Filled Steps to reproduce section",
   "stack_trace_excerpt": "Relevant stack trace excerpt only"
-}
+}}
 """
 
-TIME_WINDOW_HOURS = 48  # adjust if you want
+TIME_WINDOW_HOURS = 48
 
 
 def _load_triaged() -> List[Dict[str, Any]]:
@@ -86,13 +86,6 @@ def _load_triaged() -> List[Dict[str, Any]]:
 
 
 def run(cluster_indices: Optional[List[int]] = None) -> Dict[str, Any]:
-    """
-    Generate Jira bug ticket drafts for the clusters selected by the orchestrator.
-
-    cluster_indices:
-      - list of idx values (from triaged_llm.json) to generate tickets for.
-      - if None or empty, no tickets will be generated.
-    """
     items = _load_triaged()
     idx_set = set(cluster_indices or [])
 

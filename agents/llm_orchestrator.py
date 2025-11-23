@@ -111,24 +111,18 @@ def plan_actions(summary: Dict[str, Any], triaged_items: List[Dict[str, Any]]) -
     compact_clusters = _compact_clusters(triaged_items)
     feedback_entries = load_feedback()
 
-    # index feedback by signature
     fb_by_sig = {}
     for fb in feedback_entries:
         sig = fb.get("signature")
         if not sig:
             continue
-        # last feedback wins, but you could keep list
         fb_by_sig[sig] = {
             "decision": fb.get("decision"),
             "reason": fb.get("reason"),
         }
 
-    # annotate clusters with feedback if available
     for c in compact_clusters:
         sig = None
-        # need signature in compact
-        # adjust _compact_clusters to include signature:
-        # "signature": it.get("signature")
         sig = c.get("signature")
         if sig in fb_by_sig:
             c["feedback"] = fb_by_sig[sig]

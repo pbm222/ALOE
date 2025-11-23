@@ -11,8 +11,8 @@ import hashlib
 CLUSTERS = Path("output") / "clusters.json"
 OUT = Path("output") / "triaged_llm.json"
 
-# limit for cost-control; increase later if needed
-TRIAGE_TOP_N = 10
+# limit for cost-control
+TRIAGE_TOP_N = 2
 
 SYSTEM = """You are a senior backend engineer helping with log triage in an enterprise web application.
 
@@ -57,11 +57,6 @@ Cluster:
 ```"""
 
 def make_cluster_signature(java_class: str | None, message: str | None) -> str:
-    """
-    Build a stable-ish signature for a log cluster, so we can match it across runs.
-
-    We normalize digits to '#' to avoid IDs/timestamps breaking the signature.
-    """
     base = (java_class or "") + "|" + (message or "")
     normalized = re.sub(r"\d+", "#", base)
     h = hashlib.sha1(normalized.encode("utf-8")).hexdigest()[:12]
@@ -69,11 +64,11 @@ def make_cluster_signature(java_class: str | None, message: str | None) -> str:
 
 
 def run() -> Dict[str, Any]:
-    # limit for now (top N clusters by frequency)
-    #clusters = clusters[:TRIAGE_TOP_N]
 
     data = json.loads(CLUSTERS.read_text(encoding="utf-8"))
     clusters: List[Dict[str, Any]] = data.get("clusters", [])
+    # limit for now (top N clusters by frequency)
+    clusters = clusters[:TRIAGE_TOP_N]
 
     results: List[Dict[str, Any]] = []
 
@@ -81,13 +76,11 @@ def run() -> Dict[str, Any]:
         user = USER_TEMPLATE.format(cluster_json=json.dumps(c, ensure_ascii=False, indent=2))
         out = ask_json(SYSTEM, user)
 
-        # NEW: extract service + a small stack snippet for later use in Jira
         service = c.get("service") or c.get("athena_service")
         sample = c.get("sample") or {}
         sample_source = sample.get("_source") or sample
         full_log = sample_source.get("log", "")
 
-        # keep only first few stack lines to avoid huge JSON
         stack_lines = full_log.splitlines()
         stack_excerpt = "\n".join(stack_lines[:15])
 

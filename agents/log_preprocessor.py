@@ -5,19 +5,13 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple
 from rich import print
 
+from agents.log_source import load_logs
+
 INPUT_FILE = Path("resources") / "test_logs.json"
 RAW_OUT   = Path("output") / "raw_logs.json"
 CL_OUT    = Path("output") / "clusters.json"
 
-def _load_es_export(path: Path) -> List[Dict[str, Any]]:
-    """Load ES search response JSON and return _source list."""
-    with path.open("r", encoding="utf-8") as f:
-        es_data = json.load(f)
-    hits = es_data.get("hits", {}).get("hits", [])
-    return [h.get("_source", {}) or {} for h in hits]
-
 def _normalize(src: Dict[str, Any]) -> Dict[str, Any]:
-    """Normalize one log record to a minimal schema."""
     return {
         "timestamp": src.get("@timestamp") or src.get("timestamp"),
         "level": src.get("athena_level") or src.get("level"),
@@ -29,7 +23,6 @@ def _normalize(src: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 def _cluster(logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Simple grouping by (java_class, message)."""
     groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
     for e in logs:
         k = (e.get("java_class") or "<unknown_class>", (e.get("message") or "").strip())
@@ -48,11 +41,12 @@ def _cluster(logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     clusters.sort(key=lambda c: c["count"], reverse=True)
     return clusters
 
-def run(context: Dict[str, Any]) -> Dict[str, Any]:
-    """Log Preprocessor Agent: load → normalize → cluster → write files → return context."""
-    print(f"[green]Preprocessing logs from {INPUT_FILE}[/green]")
-    sources = _load_es_export(INPUT_FILE)
-    norm = [_normalize(s) for s in sources]
+def run(context: Dict[str, Any], source: str = "mock") -> Dict[str, Any]:
+    print(f"[cyan]Loading logs (source={source})[/cyan]")
+    raw_logs = load_logs(source=source)
+    print(f"[cyan]Loaded {len(raw_logs)} raw logs[/cyan]")
+
+    norm = [_normalize(s) for s in raw_logs]
 
     RAW_OUT.parent.mkdir(parents=True, exist_ok=True)
     with RAW_OUT.open("w", encoding="utf-8") as f:
