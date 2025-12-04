@@ -55,8 +55,7 @@ def load_logs_from_elasticsearch(
     print(f"[cyan]Querying index '{index}'[/cyan]")
     resp = es.search(
         index=index,
-        body=query,
-        size=size,
+        body=query
     )
 
     hits = resp.get("hits", {}).get("hits", [])
