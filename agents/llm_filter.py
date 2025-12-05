@@ -6,6 +6,7 @@ from utils.llm import ask_json
 
 TRIAGED = Path("output") / "triaged_llm.json"
 OUT = Path("output") / "filter_suggestions.json"
+JIRA_DRAFTS = Path("output") / "jira_drafts.json"
 
 # Limit how many filters we ask the LLM to generate in one run
 MAX_FILTER_SUGGESTIONS = 3
@@ -17,6 +18,22 @@ Your task is to propose precise regex or Kibana KQL filters that:
 - Generalize dynamic parts such as IDs, UUIDs, timestamps, numeric values.
 - Keep stable constants (service name, error code, class name, key phrases) as literals.
 - Avoid over-matching unrelated logs.
+
+Additionally, you must generate an Elasticsearch filter clause that can be inserted
+directly into the 'must_not' array of an existing query. This clause should usually be:
+
+- A simple match_phrase on the 'log' field, e.g.:
+  { "match_phrase": { "log": "Some stable error text" } }
+
+or, if necessary, a bool with multiple match_phrase subclauses, e.g.:
+  {
+    "bool": {
+      "must": [
+        { "match_phrase": { "log": "Part 1 of message" } },
+        { "match_phrase": { "log": "Part 2 of message" } }
+      ]
+    }
+  }
 
 You MUST respond with ONLY a single valid JSON object. No markdown, no backticks, no comments.
 """
@@ -33,91 +50,41 @@ Cluster:
 
 Return JSON with this exact schema:
 {{
-  "regex": "string or null",
-  "kql": "string or null",
-  "explanation": "why this matches the issue without catching unrelated logs"
+  "es_filter_clause": {{
+    "match_phrase": {{ "log": "..." }}
+  }}
 }}
 """
 
 
-def _load_triaged() -> List[Dict[str, Any]]:
-    """
-    Load triaged clusters from output/triaged_llm.json.
-
-    Expected shape:
-    {
-      "items": [
-        {
-          "idx": int,
-          "service": str,
-          "java_class": str,
-          "message": str,
-          "count": int,
-          "triage": {
-            "label": str,
-            "priority": str,
-            "severity": str,
-            "confidence": float,
-            "reason": str
-          }
-        },
-        ...
-      ]
-    }
-    """
-    if not TRIAGED.exists():
-        return []
-    data = json.loads(TRIAGED.read_text(encoding="utf-8"))
-    return data.get("items", [])
-
-
 def run(for_labels: Optional[List[str]] = None,
         min_count: Optional[int] = None) -> Dict[str, Any]:
-    """
-    Generate filter suggestions for noisy or recurring clusters.
 
-    Parameters:
-        for_labels: list of triage labels to consider (e.g. ["timeout", "external_service", "noise"]).
-                    If None, defaults to ["timeout", "external_service", "noise"].
-        min_count:  minimum occurrence count for a cluster to be considered. If None, no threshold.
-
-    Returns:
-        { "count": int, "output": "path/to/filter_suggestions.json" }
-    """
-    if for_labels is None:
-        for_labels = ["timeout", "external_service", "noise"]
-
-    items = _load_triaged()
-    if not items:
+    if not JIRA_DRAFTS.exists():
         OUT.parent.mkdir(parents=True, exist_ok=True)
         OUT.write_text(json.dumps({"suggestions": []}, indent=2), encoding="utf-8")
         return {"count": 0, "output": str(OUT)}
 
-    selected: List[Dict[str, Any]] = []
-    for it in items:
-        triage = it.get("triage", {})
-        label = triage.get("label")
-        count = it.get("count", 0)
+    drafts_data = json.loads(JIRA_DRAFTS.read_text(encoding="utf-8"))
+    drafts: List[Dict[str, Any]] = drafts_data.get("drafts", [])
 
-        if label not in for_labels:
-            continue
-        if min_count is not None and count < min_count:
-            continue
+    if not drafts:
+        OUT.parent.mkdir(parents=True, exist_ok=True)
+        OUT.write_text(json.dumps({"suggestions": []}, indent=2), encoding="utf-8")
+        return {"count": 0, "output": str(OUT)}
 
-        selected.append(it)
-
-    selected = selected[:MAX_FILTER_SUGGESTIONS]
+    # drafts = drafts[:MAX_FILTER_SUGGESTIONS]
 
     suggestions: List[Dict[str, Any]] = []
 
-    for it in selected:
-        cluster_payload = {
-            "idx": it.get("idx"),
-            "service": it.get("service"),
-            "java_class": it.get("java_class"),
-            "message": it.get("message"),
-            "count": it.get("count"),
-            "triage": it.get("triage"),
+    for d in drafts:
+        cluster_payload = d.get("cluster") or {
+            "idx": d.get("cluster_idx"),
+            "service": d.get("service"),
+            "java_class": d.get("java_class"),
+            "message": d.get("message"),
+            "count": d.get("count"),
+            "triage": d.get("triage"),
         }
 
         user = USER_TEMPLATE.format(
@@ -131,14 +98,12 @@ def run(for_labels: Optional[List[str]] = None,
 
         suggestions.append(
             {
-                "cluster_idx": it.get("idx"),
-                "service": it.get("service"),
-                "java_class": it.get("java_class"),
-                "count": it.get("count"),
-                "label": cluster_payload["triage"].get("label") if cluster_payload.get("triage") else None,
-                "regex": out.get("regex"),
-                "kql": out.get("kql"),
-                "explanation": out.get("explanation"),
+                "cluster_idx": d.get("cluster_idx"),
+                "service": cluster_payload.get("service"),
+                "java_class": cluster_payload.get("java_class"),
+                "count": cluster_payload.get("count"),
+                "label": (cluster_payload.get("triage") or {}).get("label"),
+                "es_filter_clause": out.get("es_filter_clause"),
             }
         )
 

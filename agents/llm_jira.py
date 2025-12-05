@@ -67,6 +67,7 @@ Use the following rules:
 Return JSON with this exact schema:
 {{
   "summary": "Short Jira summary line",
+  "service_name": name of the service,
   "issue_description": "Filled Issue description section",
   "kibana_url": "TODO placeholder as described",
   "kql_filter": "KQL query string",

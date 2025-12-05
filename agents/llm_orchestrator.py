@@ -26,7 +26,20 @@ Guidelines:
 - Prefer FilterSuggestions when there is a significant amount of noise, timeouts, or external_service errors.
 - Prefer ConfluenceDraft when something meaningful happened (e.g. tickets proposed, new filters suggested), not on empty or trivial runs.
 - Prefer conservative ticket creation (avoid spamming Jira for low-impact or low-confidence issues).
-- Use both the numeric summary fields and the per-cluster triage information to decide.
+- Use both the numeric summary fields, the per-cluster triage information, and any feedback to decide.
+
+Feedback:
+- Some clusters may contain a 'feedback' field with previous human decisions:
+  - decision: 'approved' means tickets for this signature were useful.
+  - decision: 'rejected' means tickets for this signature were noise.
+- In general, you should NOT propose JiraDrafts again for clusters that already have feedback
+  (approved or rejected), because they have already been reviewed.
+- If all clusters already have feedback and nothing important changed, you may skip JiraDrafts
+  entirely by setting "run": false and an empty "cluster_indices" list.
+
+Use this feedback to:
+- Avoid proposing Jira tickets for signatures that were rejected as noise.
+- Prefer tickets for signatures previously approved (assuming conditions are similar), but do not re-ticket the same signature repeatedly.
 
 Your objectives, in order:
 1) Ensure severe internal errors in production are not missed (favor JiraDrafts for these).
@@ -107,30 +120,32 @@ def _compact_clusters(triaged_items: List[Dict[str, Any]]) -> List[Dict[str, Any
     return compact
 
 
-def plan_actions(summary: Dict[str, Any], triaged_items: List[Dict[str, Any]]) -> Dict[str, Any]:
+def plan_actions(summary: Dict[str, Any], triaged_items: List[Dict[str, Any]], use_feedback: bool = True) -> Dict[str, Any]:
     compact_clusters = _compact_clusters(triaged_items)
     feedback_entries = load_feedback()
 
     fb_by_sig = {}
-    for fb in feedback_entries:
-        sig = fb.get("signature")
-        if not sig:
-            continue
-        fb_by_sig[sig] = {
-            "decision": fb.get("decision"),
-            "reason": fb.get("reason"),
-        }
+    if use_feedback:
+        for fb in feedback_entries:
+            sig = fb.get("signature")
+            if not sig:
+                continue
+            fb_by_sig[sig] = {
+                "decision": fb.get("decision"),
+                "reason": fb.get("reason"),
+            }
 
-    for c in compact_clusters:
-        sig = None
-        sig = c.get("signature")
-        if sig in fb_by_sig:
-            c["feedback"] = fb_by_sig[sig]
+        for c in compact_clusters:
+            sig = c.get("signature")
+            if sig in fb_by_sig:
+                c["feedback"] = fb_by_sig[sig]
+
 
     user_prompt = USER_TEMPLATE.format(
         summary_json=json.dumps(summary, ensure_ascii=False, indent=2),
         clusters_json=json.dumps(compact_clusters, ensure_ascii=False, indent=2),
     )
+
     out = ask_json(SYSTEM, user_prompt)
 
     actions = out.get("actions")

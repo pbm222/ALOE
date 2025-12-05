@@ -41,6 +41,7 @@ Fields:
 - message: representative log message
 - count: number of occurrences
 - sample: one example item (may include timestamp, trace)
+- athena_service: container or service name
 
 Return JSON with this exact schema:
 {{
@@ -49,6 +50,7 @@ Return JSON with this exact schema:
   "severity": "high|medium|low",
   "confidence": 0.0,
   "reason": "short explanation"
+  "service": "exact service name as provided"
 }}
 
 Cluster:
@@ -67,7 +69,6 @@ def run() -> Dict[str, Any]:
 
     data = json.loads(CLUSTERS.read_text(encoding="utf-8"))
     clusters: List[Dict[str, Any]] = data.get("clusters", [])
-    # limit for now (top N clusters by frequency)
     clusters = clusters[:TRIAGE_TOP_N]
 
     results: List[Dict[str, Any]] = []

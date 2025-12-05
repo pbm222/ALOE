@@ -42,10 +42,23 @@ It uses LLM agents that work together guided by an Orchestrator that decides wha
 
   run  ```python app.py review_jira```
 
+### Interactive review of Jira drafts.
+During the workflow the process stops and asks human for a feedback about created Jira tickets. 
+For each draft:
+  - [A]pprove  -> send to Jira (real or mock)
+  - [R]eject   -> do not send
+  - [S]kip all -> stop review; no tickets created
+
+Drafts remain saved locally as before in output/jira_drafts.json.
+
 ### Commands
 
-Run whole process ```python app.py run_all --source mock```
-use *mock* or *elastic* source parameter
+Run whole process ```python app.py run_all --source mock --jira-mode mock --mode pipeline```
+
+- **source** parameter: *mock* or *elastic* (*mock* by default)
+- **jira-mode** parameter: *mock* or *real* (*mock* by default)
+- **mode** parameter: *pipeline* or *orchestrator* (*orchestrator* by default)
+- **feedback** parameter: *on* or *off* (*on* by default)
 
 ### Local development
 In order to run locally, you need to obtain Groq API Key from its website (it is free)
@@ -59,6 +72,11 @@ ALOE_ES_URL="http://localhost:9200"
 ALOE_ES_INDEX="logstash-*"
 ALOE_ES_USERNAME="elastic"
 ALOE_ES_PASSWORD="changeme"
+
+ALOE_JIRA_URL=""
+ALOE_JIRA_PROJECT=""
+ALOE_JIRA_USER=""
+ALOE_JIRA_TOKEN=""
 ```
 ### Errors
 

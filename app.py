@@ -25,6 +25,26 @@ def main():
         help="Log source: 'mock' (file) or 'elastic' (Elasticsearch API)",
     )
 
+    parser.add_argument(
+        "--jira-mode",
+        choices=["mock", "real"],
+        default="mock",
+        help="Jira mode: 'mock' (console only) or 'real' (call Jira API)",
+    )
+
+    parser.add_argument(
+        "--mode",
+        choices=["orchestrator", "pipeline"],
+        default="orchestrator",
+        help="Execution mode: 'orchestrator' (full ALOE) or 'pipeline' (baseline without orchestrator).",
+    )
+    parser.add_argument(
+        "--feedback",
+        choices=["on", "off"],
+        default="on",
+        help="Whether the orchestrator should use historical feedback.",
+    )
+
     args = parser.parse_args()
 
     if args.command == "preprocess":
@@ -59,8 +79,12 @@ def main():
           f"wrote {res['written_feedback']} feedback entries → output/feedback.json[/bold cyan]")
 
     elif args.command == "run_all":
-        print("[bold magenta]Running full ALOE pipeline with LLM orchestration...[/bold magenta]")
-        res = run_full_pipeline(source=args.source)
+        use_feedback = (args.feedback == "on")
+        print(f"[bold magenta]Running full ALOE pipeline (mode={args.mode}, feedback={args.feedback})...[/bold magenta]")
+        res = run_full_pipeline(source=args.source,
+                                jira_mode=args.jira_mode,
+                                mode=args.mode,
+                                use_feedback=use_feedback,)
         print("[bold magenta]Pipeline finished.[/bold magenta]")
         print(res)
 
