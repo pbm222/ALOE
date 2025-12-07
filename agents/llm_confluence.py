@@ -8,39 +8,39 @@ from utils.llm import ask_json
 
 OUT = Path("output") / "confluence_draft.md"
 
-SYSTEM = """You are a technical writer generating a Confluence-ready markdown summary of a log review session.
+SYSTEM = """You are an assistant that writes concise Confluence-ready markdown reports
+summarizing an automated log review session in an enterprise Java backend.
 
-You MUST respond with ONLY a single valid JSON object. No markdown, no backticks, no comments.
+You MUST respond with ONLY a single valid JSON object.
+No markdown fences, no backticks, no extra text.
 
-Fields:
-- markdown: the complete Confluence/Markdown document as a single string.
+The JSON MUST have exactly this schema:
+{
+  "markdown": "Confluence-ready markdown content as a single string"
+}
 
-Your goals:
-- Summarize important clusters (especially high severity or high priority internal errors).
-- Mention any Jira ticket drafts that were generated.
-- Include filter suggestions if they exist.
-- The document must be clear, concise, and well-structured.
+The "markdown" field must contain ONLY the markdown content of the report.
+Do NOT include any other top-level keys.
+Keep the report reasonably short:
+- At most ~30 lines of markdown.
+- Tables should have at most 10 rows.
 """
 
 USER_TEMPLATE = """You will receive:
-- triaged clusters
 - Jira ticket drafts (if any)
 - filter suggestions (if any)
 
-Include these sections as a table row:
+Include these sections as ONE table row with these columns:
 - service name   (the affected service)
 - short error summary    (usually the first line in stack trace)
 - Jira ticket created (a link to Jira ticket; if no link just mention a summary  (e.g. MOCK-1 Document generation error))
-- KQL exclusion filter    
-- error date in human readable format (dd:MM:yyy:hh:ss)
-
-Triaged clusters (JSON):
-{triaged_json}
+- KQL exclusion filter  (e.g. not log: "XXX")
+- error count ('count' number from jira json)
 
 Jira drafts (JSON):
 {jira_json}
 
-Filter suggestions (JSON):
+Produced KQL (JSON):
 {filters_json}
 
 Return JSON with this exact schema:
@@ -51,12 +51,10 @@ Return JSON with this exact schema:
 
 def run() -> Dict[str, Any]:
 
-    triaged = load_triaged()
     jira = load_jira_drafts()
     filters_ = load_filter()
 
     user = USER_TEMPLATE.format(
-        triaged_json=json.dumps(triaged, ensure_ascii=False, indent=2),
         jira_json=json.dumps(jira, ensure_ascii=False, indent=2),
         filters_json=json.dumps(filters_, ensure_ascii=False, indent=2),
     )

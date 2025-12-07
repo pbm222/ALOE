@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any, List
 
-from tools.file_loader import load_clusters
+from tools.file_loader import load_refined_clusters
 from utils.llm import ask_json
 import re
 import hashlib
@@ -84,7 +84,7 @@ def _chunked(seq: List[Any], size: int):
 
 
 def run() -> Dict[str, Any]:
-    clusters: List[Dict[str, Any]] = load_clusters()
+    clusters: List[Dict[str, Any]] = load_refined_clusters()
 
     if TRIAGE_TOP_N is not None:
         clusters = clusters[:TRIAGE_TOP_N]
@@ -97,7 +97,6 @@ def run() -> Dict[str, Any]:
         )
         return {"count": 0, "output": str(TRIAGED_LOGS_OUTPUT)}
 
-    # ---- Prepare compact clusters for the LLM ----
     compact_clusters: List[Dict[str, Any]] = []
     for i, c in enumerate(clusters):
         idx = c.get("idx")
@@ -125,7 +124,6 @@ def run() -> Dict[str, Any]:
             }
         )
 
-    # ---- Call LLM in batches and aggregate triage by idx ----
     triage_by_idx: Dict[int, Dict[str, Any]] = {}
 
     for batch in _chunked(compact_clusters, BATCH_SIZE):
@@ -147,7 +145,6 @@ def run() -> Dict[str, Any]:
                 continue
 
             triage = item.get("triage")
-            # If model returned a flat structure instead of nested "triage", adapt it.
             if not isinstance(triage, dict) or not triage:
                 triage = {
                     "label": item.get("label"),
@@ -160,7 +157,6 @@ def run() -> Dict[str, Any]:
 
             triage_by_idx[int(idx)] = triage
 
-    # ---- Build final enriched results with signatures & stack excerpts ----
     results: List[Dict[str, Any]] = []
 
     for i, c in enumerate(clusters):
@@ -171,7 +167,7 @@ def run() -> Dict[str, Any]:
         triage = triage_by_idx.get(int(idx), {}) or {}
 
         sample = c.get("sample") or {}
-        sample_source = sample.get("_source") or sample
+        sample_source = sample.get("raw") or sample
         service = (
                 sample_source.get("AthenaServiceName")
                 or sample_source.get("service")
@@ -186,7 +182,6 @@ def run() -> Dict[str, Any]:
         message = c.get("message")
         signature = make_cluster_signature(java_class, message)
 
-        # Ensure service is also present in triage object for downstream use
         if "service" not in triage or triage.get("service") is None:
             triage["service"] = service
 

@@ -7,6 +7,7 @@ JIRA_DRAFTS = Path("output") / "jira_drafts.json"
 FILTERS = Path("output") / "filter_suggestions.json"
 FEEDBACK = Path("output") / "feedback.json"
 CLUSTERS_OUTPUT = Path("output") / "clusters.json"
+CLUSTERS_REFINED_OUTPUT = Path("output") / "clusters_refined.json"
 
 def _load_json(path: Path, default: Any):
     if not path.exists():
@@ -28,10 +29,13 @@ def load_filter() -> List[Dict[str, Any]]:
     data = _load_json(FILTERS, {})
     return data.get("suggestions", [])
 
+def load_refined_clusters() -> List[Dict[str, Any]]:
+    data = _load_json(CLUSTERS_REFINED_OUTPUT, {})
+    return data.get("clusters", [])
+
 def load_clusters() -> List[Dict[str, Any]]:
     data = _load_json(CLUSTERS_OUTPUT, {})
     return data.get("clusters", [])
-
 
 def load_feedback() -> List[Dict[str, Any]]:
     if not FEEDBACK.exists():

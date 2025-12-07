@@ -7,9 +7,7 @@ from tools.file_loader import load_jira_drafts
 from utils.llm import ask_json
 
 FILTER_OUTPUT = Path("output") / "filter_suggestions.json"
-JIRA_DRAFTS = Path("output") / "jira_drafts.json"
 
-MAX_FILTER_SUGGESTIONS = 3
 BATCH_SIZE = 12
 
 SYSTEM = """You are a log filtering assistant for an enterprise backend system.
@@ -45,7 +43,7 @@ Return JSON with this exact schema:
 {
   "items": [
     {
-      "cluster_idx": <int>,
+      "idx": <int>,
       "es_filter_clause": {
         "match_phrase": { "log": "..." }
       }
@@ -82,11 +80,6 @@ def _chunked(seq: List[Any], size: int):
 
 def run() -> Dict[str, Any]:
 
-    if not JIRA_DRAFTS.exists():
-        FILTER_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-        FILTER_OUTPUT.write_text(json.dumps({"suggestions": []}, indent=2), encoding="utf-8")
-        return {"count": 0, "output": str(FILTER_OUTPUT)}
-
     drafts = load_jira_drafts()
 
     if not drafts:
@@ -94,18 +87,14 @@ def run() -> Dict[str, Any]:
         FILTER_OUTPUT.write_text(json.dumps({"suggestions": []}, indent=2), encoding="utf-8")
         return {"count": 0, "output": str(FILTER_OUTPUT)}
 
-    # Optionally limit how many drafts we consider for filters
-    selected = drafts[:MAX_FILTER_SUGGESTIONS]
-
-    # We will collect es_filter_clause per cluster_idx across batches
     clauses_by_idx: Dict[Any, Any] = {}
 
-    for batch in _chunked(selected, BATCH_SIZE):
+    for batch in _chunked(drafts, BATCH_SIZE):
         cluster_payloads: List[Dict[str, Any]] = []
 
         for d in batch:
             cluster_payload = d.get("cluster") or {
-                "idx": d.get("cluster_idx"),
+                "idx": d.get("idx"),
                 "service": d.get("service"),
                 "java_class": d.get("java_class"),
                 "message": d.get("message"),
@@ -113,11 +102,11 @@ def run() -> Dict[str, Any]:
                 "triage": d.get("triage"),
             }
 
-            cluster_idx = d.get("cluster_idx") or cluster_payload.get("idx")
+            cluster_idx = d.get("idx") or cluster_payload.get("idx")
 
             cluster_payloads.append(
                 {
-                    "cluster_idx": cluster_idx,
+                    "idx": cluster_idx,
                     "service": cluster_payload.get("service"),
                     "java_class": cluster_payload.get("java_class"),
                     "message": cluster_payload.get("message"),
@@ -133,7 +122,6 @@ def run() -> Dict[str, Any]:
         out = ask_json(SYSTEM, user)
 
         if not isinstance(out, dict):
-            # skip this whole batch on error
             continue
 
         items = out.get("items") or []
@@ -143,7 +131,7 @@ def run() -> Dict[str, Any]:
         for it in items:
             if not isinstance(it, dict):
                 continue
-            idx = it.get("cluster_idx")
+            idx = it.get("idx")
             if idx is None:
                 continue
             es_clause = it.get("es_filter_clause")
@@ -151,12 +139,11 @@ def run() -> Dict[str, Any]:
                 continue
             clauses_by_idx[idx] = es_clause
 
-    # Build final suggestions list
     suggestions: List[Dict[str, Any]] = []
 
-    for d in selected:
+    for d in drafts:
         cluster_payload = d.get("cluster") or {
-            "idx": d.get("cluster_idx"),
+            "idx": d.get("idx"),
             "service": d.get("service"),
             "java_class": d.get("java_class"),
             "message": d.get("message"),
@@ -164,7 +151,7 @@ def run() -> Dict[str, Any]:
             "triage": d.get("triage"),
         }
 
-        cluster_idx = d.get("cluster_idx") or cluster_payload.get("idx")
+        cluster_idx = d.get("idx") or cluster_payload.get("idx")
         es_clause = clauses_by_idx.get(cluster_idx)
 
         if not es_clause:
@@ -172,11 +159,9 @@ def run() -> Dict[str, Any]:
 
         suggestions.append(
             {
-                "cluster_idx": cluster_idx,
+                "idx": cluster_idx,
                 "service": cluster_payload.get("service"),
-                "java_class": cluster_payload.get("java_class"),
                 "count": cluster_payload.get("count"),
-                "label": (cluster_payload.get("triage") or {}).get("label"),
                 "es_filter_clause": es_clause,
             }
         )

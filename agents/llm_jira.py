@@ -8,7 +8,7 @@ from utils.jira_client import create_jira_issues
 from utils.llm import ask_json
 
 JIRA_OUTPUT = Path("output") / "jira_drafts.json"
-BATCH_SIZE = 12
+BATCH_SIZE = 10
 
 SYSTEM = """You are a senior backend engineer writing Jira bug tickets for Java backend services.
 

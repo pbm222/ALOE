@@ -16,7 +16,7 @@ def create_jira_issues(drafts: List[Dict[str, Any]], mode: str = "mock") -> Opti
         create_jira_issue_from_draft(draft, mode)
 
 def create_jira_issue_from_draft(draft: Dict[str, Any], mode: str = "mock") -> Optional[str]:
-    summary = draft.get("summary") or "Log-based issue"
+    summary = draft.get("jira").get("summary") or "Log issue..."
     description = (
             draft.get("issue_description")
             or draft.get("description")
@@ -24,7 +24,7 @@ def create_jira_issue_from_draft(draft: Dict[str, Any], mode: str = "mock") -> O
     )
 
     if mode == "mock":
-        print(f"[bold cyan][MOCK][/bold cyan] Would create Jira ticket: [bold]{summary}[/bold]")
+        print(f"[bold cyan][MOCK-X][/bold cyan] Creating Jira ticket: [bold]{summary}[/bold]")
         return None
 
     if not all([JIRA_BASE_URL, JIRA_PROJECT_KEY, JIRA_USER, JIRA_TOKEN]):

@@ -2,7 +2,6 @@
 
 import time
 from typing import Dict, Any, List
-from pathlib import Path
 from datetime import datetime
 from rich import print
 
@@ -16,6 +15,7 @@ from agents.llm_jira import run as jira_draft_run
 from agents.llm_filter import run as filter_run
 from agents.llm_confluence import run as conf_run
 from agents.llm_orchestrator import plan_actions
+from agents.llm_cluster_refiner import run as cluster_refine_run
 
 def build_baseline_plan(summary: Dict[str, Any]) -> Dict[str, Any]:
     actions = []
@@ -35,13 +35,11 @@ def build_baseline_plan(summary: Dict[str, Any]) -> Dict[str, Any]:
         "agent": "FilterSuggestions",
         "run": True,
         "for_labels": ["external_service"],
-        "min_count": 50,
     })
 
     actions.append({
         "agent": "ConfluenceDraft",
-        "run": True,
-        "include_sections": ["summary", "jira_links", "filters"],
+        "run": True
     })
 
     plan = {
@@ -115,6 +113,10 @@ def run_full_pipeline(source: str = "mock", jira_mode: str = "mock", mode: str =
     if log_count == 0:
         print("[yellow]No logs found. Stopping pipeline early.[/yellow]")
         return {"log_count": 0, "stopped": "no_logs"}
+
+    print("[bold green]Step 1b: LLM Cluster Refinement Agent[/bold green]")
+    refine_res = cluster_refine_run()
+    print(f"[cyan]Refined clusters count: {refine_res.get('count')}[/cyan]")
 
     print("[bold green]Step 2: LLM Triage Agent[/bold green]")
     triage_run()
