@@ -2,13 +2,13 @@
 import argparse
 from rich import print
 
-from agents.log_preprocessor import run as preprocess_run
+from tools.log_preprocessor import run as preprocess_run
 from agents.llm_triage import run as triage_run
 from agents.llm_jira import run as jira_draft_run
 from agents.llm_filter import run as filter_run
 from agents.llm_confluence import run as conf_run
-from agents.executor import run_full_pipeline
-from agents.feedback_review import run as feedback_review_run
+from tools.executor import run_full_pipeline
+from tools.feedback_review import run as feedback_review_run
 
 def main():
     parser = argparse.ArgumentParser(description="ALOE - Adaptive Log Orchestration Engine")
@@ -55,11 +55,12 @@ def main():
     elif args.command == "triage":
         print("[bold green]LLM Triage Agent...[/bold green]")
         res = triage_run()
-        print(f"[bold cyan]Triaged {res['count']} clusters → output/triaged_llm.json[/bold cyan]")
+        print(f"[bold cyan]Triaged {res['count']} clusters → output/triaged_logs.json[/bold cyan]")
 
     elif args.command == "jira_drafts":
         print("[bold green]Jira Ticketing LLM Agent (drafts)...[/bold green]")
-        res = jira_draft_run()
+        res = jira_draft_run(jira_mode=args.jira_mode,
+                             mode=args.mode,)
         print(f"[bold cyan]Drafted {res['count']} tickets → output/jira_drafts.json[/bold cyan]")
 
     elif args.command == "filter_suggestions":
@@ -75,8 +76,8 @@ def main():
     elif args.command == "review_jira":
         print("[bold green]Interactive Jira feedback review...[/bold green]")
         res = feedback_review_run()
-        print(f"[bold cyan]Reviewed {res['reviewed']} drafts, "
-          f"wrote {res['written_feedback']} feedback entries → output/feedback.json[/bold cyan]")
+        print(f"[bold cyan]Reviewed {res['jira_review']} drafts, "
+          f"wrote {res['jira_review']} feedback entries → output/feedback.json[/bold cyan]")
 
     elif args.command == "run_all":
         use_feedback = (args.feedback == "on")

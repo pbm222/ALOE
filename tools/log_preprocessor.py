@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple
 from rich import print
 
-from agents.log_source import load_logs
+from tools.log_source import load_logs
 
 INPUT_FILE = Path("resources") / "test_logs.json"
-RAW_OUT   = Path("output") / "raw_logs.json"
-CL_OUT    = Path("output") / "clusters.json"
+RAW_LOGS_OUTPUT   = Path("output") / "raw_logs.json"
+CLUSTERS_OUTPUT    = Path("output") / "clusters.json"
 
 def _normalize(src: Dict[str, Any]) -> Dict[str, Any]:
     return {
@@ -48,15 +48,15 @@ def run(context: Dict[str, Any], source: str = "mock") -> Dict[str, Any]:
 
     norm = [_normalize(s) for s in raw_logs]
 
-    RAW_OUT.parent.mkdir(parents=True, exist_ok=True)
-    with RAW_OUT.open("w", encoding="utf-8") as f:
+    RAW_LOGS_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    with RAW_LOGS_OUTPUT.open("w", encoding="utf-8") as f:
         json.dump({"count": len(norm), "items": norm}, f, indent=2)
-    print(f"[cyan]Saved {len(norm)} normalized logs → {RAW_OUT}[/cyan]")
+    print(f"[cyan]Saved {len(norm)} normalized logs → {RAW_LOGS_OUTPUT}[/cyan]")
 
     clusters = _cluster(norm)
-    with CL_OUT.open("w", encoding="utf-8") as f:
+    with CLUSTERS_OUTPUT.open("w", encoding="utf-8") as f:
         json.dump({"cluster_count": len(clusters), "log_count": len(norm), "clusters": clusters}, f, indent=2)
-    print(f"[cyan]Saved {len(clusters)} clusters → {CL_OUT}[/cyan]")
+    print(f"[cyan]Saved {len(clusters)} clusters → {CLUSTERS_OUTPUT}[/cyan]")
 
     context = dict(context or {})
     context["raw_logs"] = norm

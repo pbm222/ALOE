@@ -1,29 +1,21 @@
 # utils/jira_client.py
 import os
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 import requests
 from rich import print
 
+JIRA_BASE_URL = os.getenv("ALOE_JIRA_URL")
+JIRA_PROJECT_KEY = os.getenv("ALOE_JIRA_PROJECT")
+JIRA_USER = os.getenv("ALOE_JIRA_USER")
+JIRA_TOKEN = os.getenv("ALOE_JIRA_TOKEN")
 
-# Environment-based configuration for REAL Jira mode
-JIRA_BASE_URL = os.getenv("ALOE_JIRA_URL")          # e.g. "https://your-domain.atlassian.net"
-JIRA_PROJECT_KEY = os.getenv("ALOE_JIRA_PROJECT")   # e.g. "PROJ"
-JIRA_USER = os.getenv("ALOE_JIRA_USER")             # e.g. email or username
-JIRA_TOKEN = os.getenv("ALOE_JIRA_TOKEN")           # API token
-
+def create_jira_issues(drafts: List[Dict[str, Any]], mode: str = "mock") -> Optional[str]:
+    for draft in drafts:
+        create_jira_issue_from_draft(draft, mode)
 
 def create_jira_issue_from_draft(draft: Dict[str, Any], mode: str = "mock") -> Optional[str]:
-    """
-    Create a Jira issue based on a draft.
-
-    - mode="mock": only prints to console, no HTTP calls.
-    - mode="real": sends POST to Jira REST API (v3).
-
-    Returns:
-        Jira issue key (e.g. "PROJ-123") in real mode, or None in mock/failed mode.
-    """
     summary = draft.get("summary") or "Log-based issue"
     description = (
             draft.get("issue_description")
@@ -35,7 +27,6 @@ def create_jira_issue_from_draft(draft: Dict[str, Any], mode: str = "mock") -> O
         print(f"[bold cyan][MOCK][/bold cyan] Would create Jira ticket: [bold]{summary}[/bold]")
         return None
 
-    # REAL mode
     if not all([JIRA_BASE_URL, JIRA_PROJECT_KEY, JIRA_USER, JIRA_TOKEN]):
         print("[red]Jira configuration missing (ALOE_JIRA_URL / PROJECT / USER / TOKEN). Cannot create real issue.[/red]")
         return None

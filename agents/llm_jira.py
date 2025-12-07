@@ -3,137 +3,185 @@ import json
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
+from tools.file_loader import load_triaged
+from utils.jira_client import create_jira_issues
 from utils.llm import ask_json
 
-TRIAGED = Path("output") / "triaged_llm.json"
-OUT = Path("output") / "jira_drafts.json"
+JIRA_OUTPUT = Path("output") / "jira_drafts.json"
+BATCH_SIZE = 12
 
 SYSTEM = """You are a senior backend engineer writing Jira bug tickets for Java backend services.
 
 You MUST respond with ONLY a single valid JSON object. No markdown, no backticks, no comments.
 
-You are given:
-- A log cluster (service name, java_class, representative message, count)
-- Triage info (label, severity, priority, confidence, reason)
-- A stack_excerpt containing the first lines of the stack trace
+You will receive a LIST of log clusters. Each cluster has:
+- idx: numeric index
+- service: service name
+- java_class: Java class or component name
+- message: representative log message
+- count: number of occurrences
+- triage: label, severity, priority, confidence, reason
+- stack_excerpt: the first lines of the stack trace
 
-Your job:
+Your job for EACH cluster:
 - Fill the team's Jira bug template with concrete, helpful content.
 - Extract the most relevant stack frame (the first 'at ...Class.method(File.java:line)' line) from stack_excerpt.
 - Clearly mention the service name, fully qualified Java class, method name, and line number in the description or notes for developers.
 - If you cannot find a method/line, say so explicitly instead of guessing.
+
+Use the cluster's `count` and time window to describe frequency (e.g. "17 hits in past 48 hours").
+For the Kibana URL, DO NOT invent a real URL. Use a placeholder like:
+  "TODO: Add Kibana Discover URL with this KQL filter".
+For the KQL filter, propose a precise query based on service, java_class, and a stable part of the message (no timestamps).
+
+You must return a single JSON object with key "items".
+
+"items" must be a list where each element corresponds to one input cluster and has:
+- "idx": the same idx as the input cluster
+- "summary": short Jira summary line
+- "service_name": name of the service
+- "issue_description": filled Issue description section
+- "kibana_url": placeholder URL as described
+- "kql_filter": KQL query string
+- "hits_past_window": e.g. "17 hits in past 48 hours"
+- "notes_for_development": filled Notes for development section
+- "steps_to_reproduce": filled Steps to reproduce section
+- "stack_trace_excerpt": relevant stack trace excerpt only
 """
 
-USER_TEMPLATE = """Here is the log cluster and triage info:
+USER_TEMPLATE = """Here is the list of log clusters and triage info.
 
-Cluster JSON:
-{cluster_json}
+The logs for these clusters were collected over approximately 24 hours.
 
-Our Jira bug ticket template has these sections:
+Clusters:
+{clusters_json}
 
-Issue description
-<Include a clear description of the problem, how often it occurs, and explicitly mention:
-- service name
-- Java class
-- method name and line number extracted from stack_excerpt, if available.>
-
-URL to Kibana
-<Add a URL to Kibana that filters error.>
-
-Kibana search query
-<Add here exact and precise KQL filter that filters error>
-
-Hits in past hours/days
-<TODO> hits in past <TODO> hours/days
-
-Notes for development
-<>
-
-Steps to reproduce
-<>
-
-Stack trace
-<Include only the most relevant excerpt, including the key 'at ...Class.method(File.java:line)' line.>
-
-The logs for this cluster were collected over approximately {time_window_hours} hours.
-
-Use the following rules:
-- Use the cluster's `count` and time window to describe frequency in "Issue description" and "Hits in past hours/days".
-- For "URL to Kibana", DO NOT invent a real URL. Use a placeholder like "TODO: Add Kibana Discover URL with this KQL filter".
-- For "Kibana search query", propose a precise KQL filter based on service, java_class, and a stable part of the message (do NOT include timestamps).
-- For "Stack trace", extract only the most relevant few lines (exception type + 3–5 key frames), not the whole thing.
-- For "Steps to reproduce", suggest reasonable, generic steps inferred from the log.
-
-Return JSON with this exact schema:
-{{
-  "summary": "Short Jira summary line",
-  "service_name": name of the service,
-  "issue_description": "Filled Issue description section",
-  "kibana_url": "TODO placeholder as described",
-  "kql_filter": "KQL query string",
-  "hits_past_window": "e.g. '17 hits in past 48 hours'",
-  "notes_for_development": "Filled Notes for development section",
-  "steps_to_reproduce": "Filled Steps to reproduce section",
-  "stack_trace_excerpt": "Relevant stack trace excerpt only"
-}}
+For EACH cluster in this list, produce one Jira draft object as described in the system prompt.
+Return a single JSON object with key "items" as specified.
 """
 
-TIME_WINDOW_HOURS = 48
+def _chunked(seq: List[Any], size: int) -> List[List[Any]]:
+    for i in range(0, len(seq), size):
+        yield seq[i : i + size]
 
+def run(cluster_indices: Optional[List[int]] = None, mode: str = "orchestrator") -> Dict[str, Any]:
+    items = load_triaged()
 
-def _load_triaged() -> List[Dict[str, Any]]:
-    data = json.loads(TRIAGED.read_text(encoding="utf-8"))
-    return data.get("items", [])
+    if mode == "pipeline":
+        selected = list(items)
+        skipped: List[Dict[str, Any]] = []
+    else:
+        idx_set = set(cluster_indices or [])
+        selected = [it for it in items if it.get("idx") in idx_set]
+        skipped = [
+            {
+                "idx": it.get("idx"),
+                "reason": "not selected",
+                "triage": it.get("triage"),
+            }
+            for it in items
+            if it.get("idx") not in idx_set
+        ]
 
-
-def run(cluster_indices: Optional[List[int]] = None) -> Dict[str, Any]:
-    items = _load_triaged()
-    idx_set = set(cluster_indices or [])
-
-    selected = [it for it in items if it.get("idx") in idx_set]
     drafts: List[Dict[str, Any]] = []
-    skipped: List[Dict[str, Any]] = []
 
     if not selected:
-        OUT.parent.mkdir(parents=True, exist_ok=True)
-        OUT.write_text(
+        JIRA_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+        JIRA_OUTPUT.write_text(
             json.dumps(
                 {
                     "draft_count": 0,
                     "skipped_count": len(items),
                     "drafts": [],
-                    "skipped": [{"idx": it.get("idx"), "reason": "not selected by orchestrator"} for it in items],
+                    "skipped": [
+                        {"idx": it.get("idx"), "reason": "not selected"}
+                        for it in items
+                    ],
                 },
                 indent=2,
                 ensure_ascii=False,
             ),
             encoding="utf-8",
         )
-        return {"count": 0, "output": str(OUT)}
+        return {"count": 0, "output": str(JIRA_OUTPUT)}
 
-    for it in selected:
-        cluster = {
-            "idx": it.get("idx"),
-            "signature": it.get("signature"),
-            "service": it.get("service"),
-            "java_class": it.get("java_class"),
-            "message": it.get("message"),
-            "count": it.get("count"),
-            "triage": it.get("triage"),
-            "stack_excerpt": it.get("stack_excerpt"),
-        }
+    jira_by_idx: Dict[Any, Dict[str, Any]] = {}
 
-        user = USER_TEMPLATE.format(
-            cluster_json=json.dumps(cluster, ensure_ascii=False, indent=2),
-            time_window_hours=TIME_WINDOW_HOURS,
-        )
-        out = ask_json(SYSTEM, user)
-
-        if out is None or (isinstance(out, dict) and "_error" in out):
-            skipped.append(
+    for batch in _chunked(selected, BATCH_SIZE):
+        cluster_payloads: List[Dict[str, Any]] = []
+        for it in batch:
+            cluster_payloads.append(
                 {
                     "idx": it.get("idx"),
-                    "reason": f"LLM output error: {out.get('_error') if isinstance(out, dict) else 'unknown'}",
+                    "signature": it.get("signature"),
+                    "service": it.get("service"),
+                    "java_class": it.get("java_class"),
+                    "message": it.get("message"),
+                    "count": it.get("count"),
+                    "triage": it.get("triage"),
+                    "stack_excerpt": it.get("stack_excerpt"),
+                }
+            )
+
+        user = USER_TEMPLATE.format(
+            clusters_json=json.dumps(cluster_payloads, ensure_ascii=False, indent=2))
+
+        out = ask_json(SYSTEM, user)
+
+        if not isinstance(out, dict):
+            for it in batch:
+                skipped.append(
+                    {
+                        "idx": it.get("idx"),
+                        "reason": "LLM output not a dict",
+                        "triage": it.get("triage"),
+                    }
+                )
+            continue
+
+        items_out = out.get("items")
+        if items_out is None:
+            if len(batch) == 1:
+                jira_by_idx[batch[0].get("idx")] = out
+            else:
+                for it in batch:
+                    skipped.append(
+                        {
+                            "idx": it.get("idx"),
+                            "reason": "no 'items' field in LLM output for batch",
+                            "triage": it.get("triage"),
+                        }
+                    )
+            continue
+
+        if not isinstance(items_out, list):
+            for it in batch:
+                skipped.append(
+                    {
+                        "idx": it.get("idx"),
+                        "reason": "'items' is not a list in LLM output",
+                        "triage": it.get("triage"),
+                    }
+                )
+            continue
+
+        for ji in items_out:
+            if not isinstance(ji, dict):
+                continue
+            idx = ji.get("idx")
+            if idx is None:
+                continue
+            jira_by_idx[idx] = ji
+
+    for it in selected:
+        idx = it.get("idx")
+        jira = jira_by_idx.get(idx)
+
+        if jira is None:
+            skipped.append(
+                {
+                    "idx": idx,
+                    "reason": "no Jira draft returned for this idx",
                     "triage": it.get("triage"),
                 }
             )
@@ -141,17 +189,17 @@ def run(cluster_indices: Optional[List[int]] = None) -> Dict[str, Any]:
 
         drafts.append(
             {
-                "idx": it.get("idx"),
+                "idx": idx,
                 "signature": it.get("signature"),
                 "java_class": it.get("java_class"),
                 "count": it.get("count"),
                 "triage": it.get("triage"),
-                "jira": out,
+                "jira": jira,
             }
         )
 
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(
+    JIRA_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    JIRA_OUTPUT.write_text(
         json.dumps(
             {
                 "draft_count": len(drafts),
@@ -165,4 +213,6 @@ def run(cluster_indices: Optional[List[int]] = None) -> Dict[str, Any]:
         encoding="utf-8",
     )
 
-    return {"count": len(drafts), "output": str(OUT)}
+    create_jira_issues(drafts)
+
+    return {"count": len(drafts), "output": str(JIRA_OUTPUT)}

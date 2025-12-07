@@ -1,8 +1,9 @@
 # agents/llm_orchestrator.py
 import json
 from typing import Dict, Any, List
+
+from tools.file_loader import load_feedback
 from utils.llm import ask_json
-from agents.feedback import load_feedback
 
 SYSTEM = """You are an orchestration planner for a multi-agent log review system in an enterprise Java backend.
 
@@ -86,8 +87,7 @@ Return JSON with this exact schema:
     }},
     {{
       "agent": "ConfluenceDraft",
-      "run": true or false,
-      "include_sections": ["summary", "jira_links", "filters"]
+      "run": true or false
     }}
   ],
   "global_policy": {{
@@ -165,7 +165,6 @@ def plan_actions(summary: Dict[str, Any], triaged_items: List[Dict[str, Any]], u
             {
                 "agent": "ConfluenceDraft",
                 "run": False,
-                "include_sections": ["summary"],
             },
         ]
 
@@ -194,7 +193,6 @@ def plan_actions(summary: Dict[str, Any], triaged_items: List[Dict[str, Any]], u
                 {
                     "agent": "ConfluenceDraft",
                     "run": bool(a.get("run", False)),
-                    "include_sections": a.get("include_sections", ["summary", "jira_links", "filters"]),
                 }
             )
 

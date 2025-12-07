@@ -27,17 +27,12 @@ def load_logs_from_elasticsearch(
         password: str | None = None,
         size: int = 1000,
 ) -> List[Dict[str, Any]]:
-    """
-    Real mode: fetch logs from Elasticsearch using the query stored
-    in resources/elastic_query.json.
-    """
     if Elasticsearch is None:
         raise RuntimeError(
             "Elasticsearch client not installed. "
             "Run `pip install elasticsearch` or adjust dependencies."
         )
 
-    # Load query from file
     query_file = Path("resources/elastic_query.json")
     if not query_file.exists():
         raise FileNotFoundError("Missing resources/elastic_query.json")
