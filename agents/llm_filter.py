@@ -17,6 +17,10 @@ Your task is to propose precise regex or Kibana KQL filters that:
 - Generalize dynamic parts such as IDs, UUIDs, timestamps, numeric values.
 - Keep stable constants (service name, error code, class name, key phrases) as literals.
 - Avoid over-matching unrelated logs.
+- Filter can contain a phrase fromt he error message
+- DO NOT include into KQL filter the Java class name (e.g., com.knowledgeprice.athena.documents.api.DocumentGenerationService)
+- The filter should be specific to this error 
+  (i.e., don't exclude the whole class name from the stack trace as some other error can occur in this class just in another place)
 
 Additionally, you must generate an Elasticsearch filter clause that can be inserted
 directly into the 'must_not' array of an existing query. This clause should usually be:

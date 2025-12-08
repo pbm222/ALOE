@@ -21,8 +21,21 @@ def build_baseline_plan(summary: Dict[str, Any]) -> Dict[str, Any]:
     actions = []
 
     by_label = summary.get("by_label", {}) or {}
-    by_priority = summary.get("by_priority", {}) or {}
     internal_high_count = summary.get("internal_high_count", 0) or 0
+    triaged_count = summary.get("triaged_cluster_count", 0) or 0
+
+    has_external = by_label.get("external_service", 0) > 0
+    has_noise = by_label.get("noise", 0) > 0
+
+    run_jira = internal_high_count > 0
+    run_filters = triaged_count > 0
+    run_confluence = run_jira or run_filters
+
+    include_sections = ["summary"]
+    if run_jira:
+        include_sections.append("jira_links")
+    if run_filters or has_external or has_noise:
+        include_sections.append("filters")
 
     run_jira = internal_high_count > 0
     actions.append({
@@ -33,13 +46,13 @@ def build_baseline_plan(summary: Dict[str, Any]) -> Dict[str, Any]:
 
     actions.append({
         "agent": "FilterSuggestions",
-        "run": True,
-        "for_labels": ["external_service"],
+        "run": run_filters
     })
 
     actions.append({
         "agent": "ConfluenceDraft",
-        "run": True
+        "run": run_confluence,
+        "include_sections": include_sections,
     })
 
     plan = {

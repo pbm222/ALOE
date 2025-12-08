@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 from tools.file_loader import load_triaged, load_jira_drafts, load_filter
+from utils.confluence_client import update_confluence_page_with_markdown
 from utils.llm import ask_json
 
 OUT = Path("output") / "confluence_draft.md"
@@ -24,18 +25,23 @@ Do NOT include any other top-level keys.
 Keep the report reasonably short:
 - At most ~30 lines of markdown.
 - Tables should have at most 10 rows.
-"""
 
-USER_TEMPLATE = """You will receive:
+You will receive:
 - Jira ticket drafts (if any)
 - filter suggestions (if any)
 
-Include these sections as ONE table row with these columns:
+Include these sections as ONE table row with these columns :
 - service name   (the affected service)
 - short error summary    (usually the first line in stack trace)
 - Jira ticket created (a link to Jira ticket; if no link just mention a summary  (e.g. MOCK-1 Document generation error))
 - KQL exclusion filter  (e.g. not log: "XXX")
 - error count ('count' number from jira json)
+
+DO NOT include any headings, titles, or description text into the markdown. 
+
+"""
+
+USER_TEMPLATE = """
 
 Jira drafts (JSON):
 {jira_json}
@@ -68,5 +74,7 @@ def run() -> Dict[str, Any]:
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(markdown, encoding="utf-8")
+
+    update_confluence_page_with_markdown(markdown)
 
     return {"length": len(markdown), "output": str(OUT)}

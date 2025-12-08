@@ -203,7 +203,7 @@ def run(cluster_indices: Optional[List[int]] = None, mode: str = "orchestrator")
         json.dumps(
             {
                 "draft_count": len(drafts),
-                "skipped_count": len(skipped),
+                "skipped_triaged_issues_count": len(skipped),
                 "drafts": drafts,
                 "skipped": skipped,
             },

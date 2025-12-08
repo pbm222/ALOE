@@ -60,6 +60,11 @@ Run whole process ```python app.py run_all --source mock --jira-mode mock --mode
 - **mode** parameter: *pipeline* or *orchestrator* (*orchestrator* by default)
 - **feedback** parameter: *on* or *off* (*on* by default)
 
+### Errors
+
+``` Groq error: Error code: 400 - {'error': {'message':'The model `llama-3.1-70b-versatile` has been decommissioned and is no longer supported ```
+- check https://console.groq.com/docs/rate-limits for latest version
+
 ### Local development
 In order to run locally, you need to obtain Groq API Key from its website (it is free)
 
@@ -77,11 +82,12 @@ ALOE_JIRA_URL=""
 ALOE_JIRA_PROJECT=""
 ALOE_JIRA_USER=""
 ALOE_JIRA_TOKEN=""
-```
-### Errors
 
-``` Groq error: Error code: 400 - {'error': {'message':'The model `llama-3.1-70b-versatile` has been decommissioned and is no longer supported ```
-- check https://console.groq.com/docs/rate-limits for latest version
+ALOE_CONFLUENCE_URL=""
+ALOE_CONFLUENCE_USER=""
+ALOE_CONFLUENCE_TOKEN=""
+ALOE_CONFLUENCE_PAGE_ID=""
+```
 
 ### Example process flow
 ```Running full ALOE pipeline with LLM orchestration...
