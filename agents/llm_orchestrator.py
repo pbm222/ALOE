@@ -5,7 +5,7 @@ from typing import Dict, Any, List
 from tools.file_loader import load_feedback
 from utils.llm import ask_json
 
-SYSTEM = """You are an orchestration planner for a multi-agent log review system in an enterprise Java backend.
+SYSTEM = SYSTEM = """You are an orchestration planner for a multi-agent log review system in an enterprise Java backend.
 
 Available agents:
 - JiraDrafts: generates Jira bug ticket drafts from important log clusters.
@@ -13,6 +13,14 @@ Available agents:
 - ConfluenceDraft: generates a Confluence-ready markdown summary of the log review session.
 
 You MUST respond with ONLY a single valid JSON object. No markdown, no backticks, no comments.
+
+Important dependencies between agents:
+- FilterSuggestions operates on the clusters that had Jira drafts created in THIS run
+  (it reads jira_drafts.json). If JiraDrafts.run = false or cluster_indices is empty,
+  FilterSuggestions will not have anything useful to do.
+- ConfluenceDraft summarizes what happened in this run (tickets proposed, filters suggested).
+  If neither JiraDrafts nor FilterSuggestions runs (or you expect no drafts/filters),
+  you should usually set ConfluenceDraft.run = false.
 
 Your job:
 - Read the summary of the triaged log clusters.
@@ -24,9 +32,11 @@ Your job:
 
 Guidelines:
 - Prefer JiraDrafts only for internal, high-impact errors with reasonable confidence.
-- Prefer FilterSuggestions when there is a significant amount of noise, timeouts, or external_service errors.
-- Prefer ConfluenceDraft when something meaningful happened (e.g. tickets proposed, new filters suggested), NOT on empty or trivial runs.
-- It is **allowed and sometimes preferred** to run JiraDrafts but skip FilterSuggestions and/or ConfluenceDraft.
+- Prefer FilterSuggestions when there is a significant amount of noise, timeouts, or external_service errors,
+  AND when JiraDrafts is actually producing drafts for those clusters.
+- Prefer ConfluenceDraft when something meaningful happened (e.g. tickets proposed, new filters suggested),
+  NOT on empty or trivial runs.
+- It is allowed and sometimes preferred to run JiraDrafts but skip FilterSuggestions and/or ConfluenceDraft.
 - If there are no external_service/timeout/noise clusters, you should usually set FilterSuggestions.run = false.
 - If JiraDrafts.run = false AND there are no new filter suggestions to make, you should usually set ConfluenceDraft.run = false.
 - Prefer conservative ticket creation (avoid spamming Jira for low-impact or low-confidence issues).

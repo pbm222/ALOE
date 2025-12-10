@@ -15,12 +15,13 @@ SYSTEM = """You are a log filtering assistant for an enterprise backend system.
 Your task is to propose precise regex or Kibana KQL filters that:
 - Match the given error cluster reliably.
 - Generalize dynamic parts such as IDs, UUIDs, timestamps, numeric values.
-- Keep stable constants (service name, error code, class name, key phrases) as literals.
 - Avoid over-matching unrelated logs.
 - Filter can contain a phrase fromt he error message
-- DO NOT include into KQL filter the Java class name (e.g., com.knowledgeprice.athena.documents.api.DocumentGenerationService)
+- DO NOT include into KQL filter log the Java class name or exception name (e.g., com.knowledgeprice.athena.documents.api.DocumentGenerationService)
 - The filter should be specific to this error 
   (i.e., don't exclude the whole class name from the stack trace as some other error can occur in this class just in another place)
+- Include error message
+- Do NOT produce filters with the same log
 
 Additionally, you must generate an Elasticsearch filter clause that can be inserted
 directly into the 'must_not' array of an existing query. This clause should usually be:
@@ -61,7 +62,6 @@ USER_TEMPLATE = """You will receive multiple log clusters that had Jira drafts c
 
 Each cluster has:
 - cluster_idx: identifier of the cluster
-- service: service name (if available)
 - java_class: Java class
 - message: representative message
 - count: how many times it occurred

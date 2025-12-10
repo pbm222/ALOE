@@ -76,8 +76,8 @@ def main():
     elif args.command == "review_jira":
         print("[bold green]Interactive Jira feedback review...[/bold green]")
         res = feedback_review_run()
-        print(f"[bold cyan]Reviewed {res['jira_review']} drafts, "
-          f"wrote {res['jira_review']} feedback entries → output/feedback.json[/bold cyan]")
+        print(f"[bold cyan]Approved {res['approved']} drafts, rejected {res['rejected']}, skipped all: {res['skipped_all']}, "
+          f"wrote feedback entries → output/feedback.json[/bold cyan]")
 
     elif args.command == "run_all":
         use_feedback = (args.feedback == "on")

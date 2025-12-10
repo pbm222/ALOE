@@ -40,15 +40,13 @@ It uses LLM agents that work together guided by an Orchestrator that decides wha
 - Saves feedback linked by stable cluster signature
 - Guides future orchestrator decisions
 
-  run  ```python app.py review_jira```
-
-### Interactive review of Jira drafts.
-During the workflow the process stops and asks human for a feedback about created Jira tickets. 
-For each draft:
+### Feedback on Jira drafts.
+Run ```python app.py review_jira``` and for each draft:
   - [A]pprove  -> send to Jira (real or mock)
   - [R]eject   -> do not send
   - [S]kip all -> stop review; no tickets created
 
+Feedback can be used when running in orchestrator mode.
 Drafts remain saved locally as before in output/jira_drafts.json.
 
 ### Commands

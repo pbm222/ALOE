@@ -60,7 +60,6 @@ def update_confluence_page_with_markdown(
     if mode == "mock":
         print("[bold cyan][MOCK-X][/bold cyan] Would update Confluence page "
               f"[bold]{CONFLUENCE_PAGE_ID or '(unset)'}[/bold] with markdown section:")
-        print(markdown[:500] + ("..." if len(markdown) > 500 else ""))
         return None
 
     if _missing_conf():

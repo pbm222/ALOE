@@ -14,10 +14,28 @@ def save_feedback(entries: List[Dict[str, Any]]) -> None:
     FEEDBACK.parent.mkdir(parents=True, exist_ok=True)
     FEEDBACK.write_text(json.dumps(entries, indent=2), encoding="utf-8")
 
-def append_feedback(entry: Dict[str, Any]) -> None:
+def upsert_feedback(entry: Dict[str, Any]) -> None:
     entries = load_feedback()
-    entries.append(entry)
-    save_feedback(entries)
+    sig = entry.get("signature")
+    if not sig:
+        entries.append(entry)
+        save_feedback(entries)
+        return
+
+    new_entries: List[Dict[str, Any]] = []
+    replaced = False
+
+    for e in entries:
+        if e.get("signature") == sig:
+            new_entries.append(entry)
+            replaced = True
+        else:
+            new_entries.append(e)
+
+    if not replaced:
+        new_entries.append(entry)
+
+    save_feedback(new_entries)
 
 def run() -> Dict[str, Any]:
     drafts = load_jira_drafts()
@@ -61,7 +79,7 @@ def run() -> Dict[str, Any]:
             if choice in ("a", "approve"):
                 approved_indices.append(idx)
 
-                append_feedback(
+                upsert_feedback(
                     {
                     "timestamp": datetime.utcnow().isoformat() + "Z",
                     "signature": signature,
@@ -77,7 +95,7 @@ def run() -> Dict[str, Any]:
             elif choice in ("r", "reject"):
                 rejected_indices.append(idx)
 
-                append_feedback(
+                upsert_feedback(
                     {
                     "timestamp": datetime.utcnow().isoformat() + "Z",
                     "signature": signature,
