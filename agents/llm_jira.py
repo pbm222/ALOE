@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
-from tools.file_loader import load_triaged
+from utils.file_loader import load_triaged
 from utils.jira_client import create_jira_issues
 from utils.llm import ask_json
 

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from typing import Dict, Any, List
 
-from tools.file_loader import load_clusters
+from utils.file_loader import load_clusters
 from utils.llm import ask_json
 
 CLUSTERS_REFINED = Path("output") / "clusters_refined.json"

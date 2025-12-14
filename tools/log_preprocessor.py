@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Tuple
 from rich import print
 
-from tools.log_source import load_logs
+from utils.log_source import load_logs
 
 INPUT_FILE = Path("resources") / "test_logs.json"
 RAW_LOGS_OUTPUT   = Path("output") / "raw_logs.json"

@@ -6,7 +6,7 @@ from pathlib import Path
 import json
 
 from rich import print
-from tools.file_loader import load_jira_drafts, load_feedback
+from utils.file_loader import load_jira_drafts, load_feedback
 
 FEEDBACK = Path("output") / "feedback.json"
 

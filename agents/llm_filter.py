@@ -1,9 +1,9 @@
 # agents/llm_filter.py
 import json
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
-from tools.file_loader import load_jira_drafts
+from utils.file_loader import load_jira_drafts
 from utils.llm import ask_json
 
 FILTER_OUTPUT = Path("output") / "filter_suggestions.json"
