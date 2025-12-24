@@ -18,12 +18,9 @@ class LlmUsage:
         return d
 
 
-# Global singleton you can import anywhere
 LLM_USAGE = LlmUsage()
 
-
 def reset_llm_usage() -> None:
-    """Call this at the start of each ALOE run."""
     LLM_USAGE.prompt_tokens = 0
     LLM_USAGE.completion_tokens = 0
     LLM_USAGE.calls = 0

@@ -16,7 +16,7 @@ TRIAGED_LOGS_OUTPUT = Path("output") / "triaged_logs.json"
 TRIAGE_TOP_N: int | None = None
 
 # How many clusters per LLM call
-BATCH_SIZE: int = 10
+BATCH_SIZE: int = 7
 
 
 SYSTEM = """You are a senior backend engineer helping with log triage in an enterprise web application.
@@ -103,15 +103,9 @@ def run() -> Dict[str, Any]:
         if idx is None:
             idx = i
 
-        sample = c.get("sample") or {}
-        sample_source = sample.get("_source") or sample
-
-        service = (
-                sample_source.get("AthenaServiceName")
-                or sample_source.get("service")
-                or c.get("athena_service")
-        )
-        full_log = sample_source.get("log") or c.get("message") or ""
+        sample_source = c.get("sample") or {}
+        service = sample_source.get("service")
+        full_log = sample_source.get("raw").get("log") or c.get("message") or ""
 
         compact_clusters.append(
             {
@@ -168,11 +162,7 @@ def run() -> Dict[str, Any]:
 
         sample = c.get("sample") or {}
         sample_source = sample.get("raw") or sample
-        service = (
-                sample_source.get("AthenaServiceName")
-                or sample_source.get("service")
-                or c.get("athena_service")
-        )
+        service = sample.get("service")
 
         full_log = sample_source.get("log", "") or ""
         stack_lines = full_log.splitlines()

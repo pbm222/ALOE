@@ -21,7 +21,7 @@ You will receive a LIST of log clusters. Each cluster has:
 
 Your job:
 - Group clusters that represent the SAME underlying logical error.
-- Compare service name and log message: errors that occurred int he same service and have the same message 
+- Compare service name and log message: errors that occurred in the same service and have the same message 
   (just different parameters) are treated as being the same
 - Treat dynamic parts like IDs, numbers, filenames, UUIDs, and similar variations as the SAME error,
   as long as the core message and root cause seem the same.
@@ -70,9 +70,7 @@ def run() -> Dict[str, Any]:
     # Prepare compact view for the LLM
     compact: List[Dict[str, Any]] = []
     for i, c in enumerate(clusters):
-        idx = c.get("idx")
-        if idx is None:
-            idx = i
+        idx = i
         compact.append(
             {
                 "idx": idx,
