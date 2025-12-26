@@ -1,5 +1,4 @@
 {
-    "size": 100,
     "sort": [
         { "@timestamp": "desc" }
     ],
