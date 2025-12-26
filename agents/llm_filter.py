@@ -97,25 +97,16 @@ def run() -> Dict[str, Any]:
         cluster_payloads: List[Dict[str, Any]] = []
 
         for d in batch:
-            cluster_payload = d.get("cluster") or {
-                "idx": d.get("idx"),
-                "service": d.get("service"),
-                "java_class": d.get("java_class"),
-                "message": d.get("message"),
-                "count": d.get("count"),
-                "triage": d.get("triage"),
-            }
 
-            cluster_idx = d.get("idx") or cluster_payload.get("idx")
-
+            cluster_idx = d.get("idx")
             cluster_payloads.append(
                 {
                     "idx": cluster_idx,
-                    "service": cluster_payload.get("service"),
-                    "java_class": cluster_payload.get("java_class"),
-                    "message": cluster_payload.get("message"),
-                    "count": cluster_payload.get("count"),
-                    "triage": cluster_payload.get("triage"),
+                    "service": d.get("service") or d.get("jira").get("service_name") or d.get("triage").get("service"),
+                    "java_class": d.get("java_class"),
+                    "message": d.get("jira").get("message") or d.get("jira").get("stack_trace_excerpt"),
+                    "count": d.get("count"),
+                    "triage": d.get("triage"),
                 }
             )
 

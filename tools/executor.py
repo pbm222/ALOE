@@ -132,7 +132,6 @@ def build_baseline_plan(summary: Dict[str, Any]) -> Dict[str, Any]:
     actions.append({
         "agent": "CONFLUENCE_AGENT",
         "run": run_confluence,
-        "include_sections": include_sections,
     })
 
     plan = {

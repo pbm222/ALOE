@@ -15,6 +15,13 @@ summarizing an automated log review session in an enterprise Java backend.
 You MUST respond with ONLY a single valid JSON object.
 No markdown fences, no backticks, no extra text.
 
+CRITICAL OUTPUT RULES:
+- You MUST return ONLY a single valid JSON object.
+- The JSON MUST have exactly this schema:
+  {"markdown": "<string>"}
+- The markdown MUST be a single JSON string. You MUST escape newlines as \\n.
+  (Do NOT put literal newlines inside the JSON string.)
+  
 The JSON MUST have exactly this schema:
 {
   "markdown": "Confluence-ready markdown content as a single string"
@@ -49,11 +56,45 @@ Jira drafts (JSON):
 Produced KQL (JSON):
 {filters_json}
 
-Return JSON with this exact schema:
-{{
-  "markdown": "full markdown document as a string"
-}}
+Return ONLY:
+{{"markdown":"<markdown table as a JSON string with \\n between lines>"}}
 """
+
+def _salvage_markdown_from_raw(raw: str) -> str:
+    if not raw:
+        return ""
+
+    text = raw.strip()
+
+    # Case A: Groq returned something JSON-ish but invalid due to raw newlines inside quotes.
+    # Try to extract the main content between the first quote after { and the last quote before }.
+    if text.startswith("{") and text.endswith("}"):
+        # If it returned {"something|...": "...."} (key is the table), salvage the key
+        try:
+            obj = json.loads(text)
+            # If valid JSON but wrong schema:
+            if isinstance(obj, dict) and "markdown" not in obj and len(obj) == 1:
+                only_key = next(iter(obj.keys()))
+                if "|" in only_key:
+                    return only_key
+        except Exception:
+            pass
+        # Heuristic salvage: if it contains pipes and looks like a table, pull that part out.
+        # Common pattern in your raw output: {"<table>"} or {"...|...\n..."}
+        if "|" in text:
+            # remove outer braces
+            inner = text[1:-1].strip()
+
+            # If it starts with a quote, strip quotes
+            if inner.startswith('"') and inner.endswith('"'):
+                inner = inner[1:-1]
+
+            # Replace escaped sequences if they exist, but also accept literal newlines.
+            return inner
+
+    # Case B: not JSON at all; just return it as markdown.
+    return text
+
 
 def run() -> Dict[str, Any]:
 
@@ -67,10 +108,16 @@ def run() -> Dict[str, Any]:
 
     out = ask_json(SYSTEM, user)
 
-    if not isinstance(out, dict):
-        markdown = "# Log Review Summary\n\n(LLM returned invalid response.)"
+    markdown = ""
+    if isinstance(out, dict) and out.get("markdown"):
+        markdown = out.get("markdown") or ""
+    elif isinstance(out, dict) and out.get("_raw"):
+        markdown = _salvage_markdown_from_raw(out.get("_raw") or "")
     else:
-        markdown = out.get("markdown") or "# Log Review Summary\n\n(No content generated.)"
+        markdown = ""
+
+    if not markdown.strip():
+        markdown = "| service name | short error summary | Jira ticket created | KQL exclusion filter | error count |\n| --- | --- | --- | --- | --- |"
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(markdown, encoding="utf-8")

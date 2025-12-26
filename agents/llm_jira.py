@@ -46,7 +46,10 @@ You must return a single JSON object with key "items".
 - "hits_past_window": e.g. "17 hits in past 48 hours"
 - "notes_for_development": filled Notes for development section
 - "steps_to_reproduce": filled Steps to reproduce section
-- "stack_trace_excerpt": relevant stack trace excerpt (taken directly from stack_excerpt field)
+- "stack_trace_excerpt": relevant stack trace excerpt (taken directly from stack_excerpt field); 
+        a few upper lines indicating the java class and line where error occured; 
+        include 'Caused by' from stack trace if exists
+- "message": exact error message from the stack trace (include Caused by)
 """
 
 USER_TEMPLATE = """Here is the list of log clusters and triage info.
