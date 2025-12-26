@@ -17,6 +17,7 @@
             ],
             "must_not": [
                 { "term": { "athena_service.keyword": "elastic-metricbeat" } },
+                { "term": { "athena_service.keyword": "apimangateway" } },
                 { "match_phrase": { "log": "Couldn't find interaction ID for document" } },
                 { "match_phrase": { "log": "com.lv.falcon.integrations.dozer.exception.UnsupportedClassifierException: Input value '7' can't be converted to classified value." } },
                 {

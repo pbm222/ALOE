@@ -21,7 +21,7 @@ You will receive a LIST of log clusters. Each cluster has:
 - message: representative log message
 - count: number of occurrences
 - triage: label, severity, priority, confidence, reason
-- stack_excerpt: the first lines of the stack trace
+- stack_excerpt: stack trace
 
 Your job for EACH cluster:
 - Fill the team's Jira bug template with concrete, helpful content.
@@ -46,7 +46,7 @@ You must return a single JSON object with key "items".
 - "hits_past_window": e.g. "17 hits in past 48 hours"
 - "notes_for_development": filled Notes for development section
 - "steps_to_reproduce": filled Steps to reproduce section
-- "stack_trace_excerpt": relevant stack trace excerpt only
+- "stack_trace_excerpt": relevant stack trace excerpt (taken directly from stack_excerpt field)
 """
 
 USER_TEMPLATE = """Here is the list of log clusters and triage info.
